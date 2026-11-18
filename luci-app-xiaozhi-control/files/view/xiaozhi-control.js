@@ -16,7 +16,8 @@ return view.extend({
 	load: function () {
 		return Promise.all([
 			uci.load('xiaozhi-api'),
-			uci.load('firewall')
+			uci.load('firewall'),
+			uci.load('network')
 		]);
 	},
 
@@ -28,6 +29,28 @@ return view.extend({
 			// 列出所有 DNAT 端口转发（与小智接口 portforward_list 保持一致）
 			if (sec.target !== 'DNAT' || !sec.src_dport) return;
 			forwards.push([sec.name || '-', sec.src_dport, sec.dest_ip || '-', sec.dest_port || '-']);
+		});
+
+		// netmask 点分十进制 -> 前缀位数
+		function maskToBits(mask) {
+			if (!mask) return null;
+			var parts = mask.split('.');
+			if (parts.length !== 4) return null;
+			var bits = 0;
+			for (var i = 0; i < 4; i++) {
+				var n = parseInt(parts[i], 10);
+				if (isNaN(n)) return null;
+				while (n > 0) { bits += n & 1; n >>= 1; }
+			}
+			return bits;
+		}
+
+		var routes = [];
+		uci.sections('network', 'route').forEach(function (sec) {
+			var target = sec.target || '';
+			var bits = maskToBits(sec.netmask);
+			var cidr = bits !== null ? (target + '/' + bits) : target;
+			routes.push([cidr, sec.gateway || '-', sec.interface || '-']);
 		});
 
 		/* 扩展点 2：状态表格统一渲染，新增状态只加一次 table() 调用 */
@@ -63,7 +86,8 @@ return view.extend({
 		// 状态区 HTML（在线设备稍后异步填充）
 		var statusHtml = '<div class="xz-sec">在线设备</div><div id="xz-devices">'
 			+ '<p class="xz-empty">加载中…</p></div>'
-			+ '<div class="xz-sec">端口映射</div>' + table(['规则名', '外部', '内网 IP', '内部'], forwards);
+			+ '<div class="xz-sec">端口映射</div>' + table(['规则名', '外部', '内网 IP', '内部'], forwards)
+			+ '<div class="xz-sec">静态路由</div>' + table(['目标网段', '网关', '接口'], routes);
 
 		return m.render().then(function (root) {
 			root.classList.add('xz-map');

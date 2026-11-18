@@ -21,6 +21,7 @@ json_escape() {
 }
 
 # 从 query string 取参数
+# 注：固件传参时 CIDR 里的 / 不编码（合法），此处不做 URL 解码以保持兼容
 get_param() {
     printf '%s' "$QUERY_STRING" | sed -n "s/.*$1=\([^&]*\).*/\1/p"
 }
@@ -42,6 +43,31 @@ valid_ip() {
 valid_port() {
     case "$1" in ''|*[!0-9]*) return 1 ;; esac
     [ "$1" -ge 1 ] 2>/dev/null && [ "$1" -le 65535 ] 2>/dev/null
+}
+
+# CIDR 网段校验：192.168.2.0/24，掩码位 8-32
+valid_cidr() {
+    local cidr="$1" ip mask
+    case "$cidr" in */*) ;; *) return 1 ;; esac
+    ip=${cidr%%/*}; mask=${cidr##*/}
+    case "$mask" in ''|*[!0-9]*) return 1 ;; esac
+    [ "$mask" -ge 8 ] 2>/dev/null && [ "$mask" -le 32 ] 2>/dev/null || return 1
+    valid_ip "$ip"
+}
+
+# 掩码位数 -> 点分十进制，如 24 -> 255.255.255.0
+netmask_from_prefix() {
+    local bits="$1" i b full=0
+    [ "$bits" -ge 8 ] 2>/dev/null && [ "$bits" -le 32 ] 2>/dev/null || return 1
+    for i in 1 2 3 4; do
+        if [ "$bits" -ge 8 ]; then b=255; bits=$((bits-8))
+        elif [ "$bits" -gt 0 ]; then
+            b=$(( (256 - 2**(8-bits)) & 255 )); bits=0
+        else b=0; fi
+        if [ "$i" -eq 1 ]; then full=$b
+        else full="$full.$b"; fi
+    done
+    printf '%s' "$full"
 }
 
 # 总开关
@@ -203,6 +229,71 @@ case "$action" in
                 "$(json_escape "$name")" "$(json_escape "$ext")" \
                 "$(json_escape "$ipx")" "$(json_escape "$inn")"
         done | awk 'BEGIN{printf "{\"forwards\":["} {if(n++)printf ","; printf "%s",$0} END{printf "]}"}'
+        ;;
+    route_list)
+        # 列出静态路由（查询类）
+        if ! can_read route_list; then printf '{"error":"route_list disabled"}'; exit 0; fi
+        uci -q show network 2>/dev/null | grep '\.target=' | while IFS='=' read -r key val; do
+            sect=${key%.*}
+            case "$sect" in network.*) ;; *) continue ;; esac
+            target=$(echo "$val" | tr -d "'")
+            gw=$(uci -q get "$sect.gateway" 2>/dev/null)
+            mask=$(uci -q get "$sect.netmask" 2>/dev/null)
+            [ -n "$target" ] || continue
+            printf '{"section":"%s","target":"%s","gateway":"%s","netmask":"%s"}\n' \
+                "$(json_escape "${sect#network.}")" "$(json_escape "$target")" \
+                "$(json_escape "$gw")" "$(json_escape "$mask")"
+        done | awk 'BEGIN{printf "{\"routes\":["} {if(n++)printf ","; printf "%s",$0} END{printf "]}"}'
+        ;;
+    route_add)
+        # 添加静态路由（控制类，二次确认）：cidr=目标网段 gw=网关 confirm=确认码
+        if ! can_do route_add; then
+            printf '{"error":"route_add disabled, set allow_control=1 and permission.route_add.allow=1"}'
+            exit 0
+        fi
+        cidr=$(get_param cidr); gw=$(get_param gw); confirm=$(get_param confirm)
+        valid_cidr "$cidr" || { printf '{"error":"invalid cidr"}'; exit 0; }
+        valid_ip "$gw" || { printf '{"error":"invalid gateway"}'; exit 0; }
+        sig=$(printf '%s:%s' "$cidr" "$gw" | md5sum | cut -c1-8)
+        if [ "$confirm" != "$sig" ]; then
+            printf '{"need_confirm":true,"confirm":"%s","desc":"add route %s via %s"}' \
+                "$sig" "$cidr" "$gw"
+            exit 0
+        fi
+        # 把 CIDR 拆成 target + netmask（UCI route 格式）
+        target=${cidr%%/*}; bits=${cidr##*/}
+        mask=$(netmask_from_prefix "$bits")
+        [ -n "$mask" ] || { printf '{"error":"invalid netmask"}'; exit 0; }
+        name="xiaozhi_route_$(printf '%s' "$cidr" | tr './' '__')"
+        uci -q delete "network.$name" 2>/dev/null
+        uci set "network.$name=route"
+        uci set "network.$name.target=$target"
+        uci set "network.$name.netmask=$mask"
+        uci set "network.$name.gateway=$gw"
+        uci commit network
+        /etc/init.d/network reload >/dev/null 2>&1
+        printf '{"result":"ok","desc":"route %s via %s"}' "$target" "$gw"
+        ;;
+    route_del)
+        # 删除静态路由（控制类，二次确认）：cidr=目标网段 confirm=确认码
+        if ! can_do route_del; then
+            printf '{"error":"route_del disabled"}'; exit 0
+        fi
+        cidr=$(get_param cidr); confirm=$(get_param confirm)
+        valid_cidr "$cidr" || { printf '{"error":"invalid cidr"}'; exit 0; }
+        sig=$(printf 'del:%s' "$cidr" | md5sum | cut -c1-8)
+        if [ "$confirm" != "$sig" ]; then
+            printf '{"need_confirm":true,"confirm":"%s","desc":"delete route %s"}' "$sig" "$cidr"
+            exit 0
+        fi
+        name="xiaozhi_route_$(printf '%s' "$cidr" | tr './' '__')"
+        if [ -z "$(uci -q get "network.$name.target" 2>/dev/null)" ]; then
+            printf '{"error":"route not found"}'; exit 0
+        fi
+        uci -q delete "network.$name"
+        uci commit network
+        /etc/init.d/network reload >/dev/null 2>&1
+        printf '{"result":"ok","desc":"deleted route %s"}' "$cidr"
         ;;
     *)
         printf '{"error":"unknown action"}'
