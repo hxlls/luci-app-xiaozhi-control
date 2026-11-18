@@ -8,6 +8,9 @@
 |---|---|
 | `firmware_tool.cc` | 基础查询工具 + `GetGatewayIp()`：在线设备、WAN 状态、系统状态 |
 | `firmware_control.cc` | 控制工具：端口映射（带二次确认）、查看映射 |
+| `firmware_route.cc` | 控制工具：静态路由增删查（添加/删除带二次确认） |
+
+三个文件都要加进 `main/`，`GetGatewayIp()` 定义在 `firmware_tool.cc`，其他文件依赖它。
 
 ## 用法
 
@@ -56,3 +59,8 @@ idf.py build flash monitor
 | `router.port_forward` | `portforward`（第一步，取确认码） |
 | `router.port_forward_confirm` | `portforward`（带 confirm 码执行） |
 | `router.port_forward_list` | `portforward_list` |
+| `router.route_list` | `route_list` |
+| `router.route_add` | `route_add`（第一步，取确认码） |
+| `router.route_add_confirm` | `route_add`（带 confirm 码执行） |
+| `router.route_del` | `route_del`（第一步，取确认码） |
+| `router.route_del_confirm` | `route_del`（带 confirm 码执行） |
