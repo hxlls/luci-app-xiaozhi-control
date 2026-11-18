@@ -20,10 +20,16 @@
        → 读 ARP/DHCP/firewall → 返回 JSON → 大模型播报
 ```
 
-## 地址
+## clone
 
-- 仓库：http://192.168.1.16:3000/ling/luci-app-xiaozhi-control
-- clone OpenWrt 侧：`git clone -b openwrt-app http://192.168.1.16:3000/ling/luci-app-xiaozhi-control.git`
-- clone 固件侧：`git clone -b xiaozhi-firmware http://192.168.1.16:3000/ling/luci-app-xiaozhi-control.git`
+把 `<仓库地址>` 换成实际托管平台的仓库 URL（Gitea / GitHub 均可）：
+
+```sh
+# OpenWrt 侧
+git clone -b openwrt-app <仓库地址>.git
+
+# 固件侧
+git clone -b xiaozhi-firmware <仓库地址>.git
+```
 
 各分支的 README 有各自的编译和使用说明。
