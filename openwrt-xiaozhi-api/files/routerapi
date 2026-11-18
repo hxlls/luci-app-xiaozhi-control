@@ -174,6 +174,8 @@ case "$action" in
         uci set "firewall.$name.target=DNAT"
         uci set "firewall.$name.src=wan"
         uci set "firewall.$name.src_dport=$ext"
+        # 关键：dest=lan 表示转发到内网设备；缺失会变成"到此设备(本机)"而非 DNAT 转发
+        uci set "firewall.$name.dest=lan"
         uci set "firewall.$name.dest_ip=$dst_ip"
         uci set "firewall.$name.dest_port=$inner"
         uci set "firewall.$name.proto=tcpudp"
