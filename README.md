@@ -7,7 +7,7 @@
 | 目录 | 说明 |
 |---|---|
 | `openwrt-xiaozhi-api/` | OpenWrt 后端：标准 ipk 包，提供 HTTP JSON 接口（查设备/WAN/系统、端口映射、OUI 厂商识别） |
-| `luci-app-xiaozhi/` | LuCI 应用：标准 luci-app，挂在「服务 → 小智 API」菜单，配置 token 和各功能开关 |
+| `luci-app-xiaozhi-control/` | LuCI 应用：标准 luci-app，挂在「服务 → 小智控制」菜单，配置 token 和各功能开关 |
 
 ## 架构
 
@@ -18,7 +18,7 @@
 ```
 
 - 设备的连接地址取 ESP32 网关 IP，不用手填（小智直连那台 OpenWrt 时成立）
-- 接口在 `/cgi-bin/routerapi`，页面在 LuCI「服务 → 小智 API」
+- 接口在 `/cgi-bin/routerapi`，页面在 LuCI「服务 → 小智控制」
 
 ## 功能
 
@@ -42,6 +42,6 @@
 见各目录的说明文档：
 - `openwrt-xiaozhi-api/编译说明.md`
 - `openwrt-xiaozhi-api/方案.md`
-- `luci-app-xiaozhi/安装说明.md`
+- `luci-app-xiaozhi-control/安装说明.md`
 
 基于 ImmortalWrt / OpenWrt 25.12（mediatek filogic 等），两个包都放源码树 `package/utils/` 下即可编译。

@@ -1,6 +1,6 @@
 {
-	"luci-app-xiaozhi": {
-		"description": "Grant UCI access for luci-app-xiaozhi",
+	"luci-app-xiaozhi-control": {
+		"description": "Grant UCI access for luci-app-xiaozhi-control",
 		"read": {
 			"uci": [ "xiaozhi-api", "firewall" ],
 			"file": {
