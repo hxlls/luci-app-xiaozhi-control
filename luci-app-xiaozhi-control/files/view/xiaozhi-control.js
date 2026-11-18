@@ -25,8 +25,9 @@ return view.extend({
 
 		var forwards = [];
 		uci.sections('firewall', 'redirect').forEach(function (sec) {
-			if (!sec.name || sec.name.indexOf('xiaozhi_') !== 0) return;
-			forwards.push([sec.src_dport || '-', sec.dest_ip || '-', sec.dest_port || '-']);
+			// 列出所有 DNAT 端口转发（与小智接口 portforward_list 保持一致）
+			if (sec.target !== 'DNAT' || !sec.src_dport) return;
+			forwards.push([sec.name || '-', sec.src_dport, sec.dest_ip || '-', sec.dest_port || '-']);
 		});
 
 		/* 扩展点 2：状态表格统一渲染，新增状态只加一次 table() 调用 */
@@ -62,7 +63,7 @@ return view.extend({
 		// 状态区 HTML（在线设备稍后异步填充）
 		var statusHtml = '<div class="xz-sec">在线设备</div><div id="xz-devices">'
 			+ '<p class="xz-empty">加载中…</p></div>'
-			+ '<div class="xz-sec">端口映射</div>' + table(['外部', '内网 IP', '内部'], forwards);
+			+ '<div class="xz-sec">端口映射</div>' + table(['规则名', '外部', '内网 IP', '内部'], forwards);
 
 		return m.render().then(function (root) {
 			root.classList.add('xz-map');
