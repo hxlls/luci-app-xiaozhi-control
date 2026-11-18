@@ -184,22 +184,25 @@ case "$action" in
         printf '{"result":"ok","desc":"WAN %s -> %s:%s"}' "$ext" "$dst_ip" "$inner"
         ;;
     portforward_list)
-        # 列出已建的映射（需 portforward_list 开关）
+        # 列出所有端口转发规则（需 portforward_list 开关）
         if ! can_do portforward_list; then
             printf '{"error":"portforward_list disabled"}'; exit 0
         fi
-        printf '{"forwards":['
-        first=1
-        uci -q show firewall 2>/dev/null | grep '\.name=xiaozhi_' | while IFS='=' read -r sect _; do
-            ext=$(uci -q get "${sect%.*}.src_dport" 2>/dev/null)
-            ipx=$(uci -q get "${sect%.*}.dest_ip" 2>/dev/null)
-            inn=$(uci -q get "${sect%.*}.dest_port" 2>/dev/null)
-            [ $first -eq 0 ] && printf ','
-            first=0
-            printf '{"ext":"%s","ip":"%s","in":"%s"}' \
-                "$(json_escape "$ext")" "$(json_escape "$ipx")" "$(json_escape "$inn")"
-        done
-        printf ']}'
+        # 注意：uci show 输出为 firewall.<section>.target='DNAT'（值带引号），
+        # 不能用 .target=DNAT 匹配；改为逐行解析 .target= 后去引号判断
+        uci -q show firewall 2>/dev/null | grep '\.target=' | while IFS='=' read -r key val; do
+            [ "$val" = "'DNAT'" ] || continue
+            sect=${key%.*}
+            name=$(uci -q get "$sect.name" 2>/dev/null)
+            ext=$(uci -q get "$sect.src_dport" 2>/dev/null)
+            ipx=$(uci -q get "$sect.dest_ip" 2>/dev/null)
+            inn=$(uci -q get "$sect.dest_port" 2>/dev/null)
+            # 跳过无外部端口的（DNAT 也可能用于其他用途）
+            [ -n "$ext" ] || continue
+            printf '{"name":"%s","ext":"%s","ip":"%s","in":"%s"}\n' \
+                "$(json_escape "$name")" "$(json_escape "$ext")" \
+                "$(json_escape "$ipx")" "$(json_escape "$inn")"
+        done | awk 'BEGIN{printf "{\"forwards\":["} {if(n++)printf ","; printf "%s",$0} END{printf "]}"}'
         ;;
     *)
         printf '{"error":"unknown action"}'
