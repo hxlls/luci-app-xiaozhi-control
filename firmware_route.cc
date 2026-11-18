@@ -6,7 +6,7 @@ AddTool(
     "router.route_list",
     "List all static routes on the OpenWrt router (target, gateway, netmask).",
     PropertyList(),
-    [](const PropertyList& properties) -> ReturnValue {
+    [](const PropertyList& properties) -> ToolResult {
         std::string gw = GetGatewayIp();
         if (gw.empty()) return std::unexpected("No gateway IP");
         std::string url = "http://" + gw + "/cgi-bin/routerapi?action=route_list";
@@ -29,7 +29,7 @@ AddTool(
         Property("cidr", kPropertyTypeString),
         Property("gateway", kPropertyTypeString)
     }),
-    [](const PropertyList& properties) -> ReturnValue {
+    [](const PropertyList& properties) -> ToolResult {
         std::string gw = GetGatewayIp();
         if (gw.empty()) return std::unexpected("No gateway IP");
         auto cidr = properties["cidr"].value<std::string>();
@@ -61,7 +61,7 @@ AddTool(
         Property("gateway", kPropertyTypeString),
         Property("confirm", kPropertyTypeString)
     }),
-    [](const PropertyList& properties) -> ReturnValue {
+    [](const PropertyList& properties) -> ToolResult {
         std::string gw = GetGatewayIp();
         if (gw.empty()) return std::unexpected("No gateway IP");
         auto cidr = properties["cidr"].value<std::string>();
@@ -91,7 +91,7 @@ AddTool(
     PropertyList({
         Property("cidr", kPropertyTypeString)
     }),
-    [](const PropertyList& properties) -> ReturnValue {
+    [](const PropertyList& properties) -> ToolResult {
         std::string gw = GetGatewayIp();
         if (gw.empty()) return std::unexpected("No gateway IP");
         auto cidr = properties["cidr"].value<std::string>();
@@ -120,7 +120,7 @@ AddTool(
         Property("cidr", kPropertyTypeString),
         Property("confirm", kPropertyTypeString)
     }),
-    [](const PropertyList& properties) -> ReturnValue {
+    [](const PropertyList& properties) -> ToolResult {
         std::string gw = GetGatewayIp();
         if (gw.empty()) return std::unexpected("No gateway IP");
         auto cidr = properties["cidr"].value<std::string>();
