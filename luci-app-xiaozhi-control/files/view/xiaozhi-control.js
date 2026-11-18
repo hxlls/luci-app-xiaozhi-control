@@ -94,21 +94,22 @@ return view.extend({
 			return h;
 		};
 
-		var root = m.render();
-		root.classList.add('xz-map');
-		var style = document.createElement('style');
-		style.textContent = ''
-			+ '.xz-map{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}'
-			+ '.xz-map>h2,.xz-map>.cbi-map-description,.xz-map>.cbi-page-actions{grid-column:1/-1}'
-			+ '.xz-map>.cbi-section{margin:0}'
-			+ '@media(max-width:900px){.xz-map{grid-template-columns:1fr}}'
-			+ '.xz-sec{margin:10px 0 4px;font-weight:500}'
-			+ '.xz-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}'
-			+ '.xz-tb{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}'
-			+ '.xz-tb th,.xz-tb td{padding:6px 8px;border-bottom:0.5px solid var(--color-border-tertiary);text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
-			+ '.xz-tb th{color:var(--color-text-secondary);font-weight:500}'
-			+ '.xz-empty{color:var(--color-text-tertiary);font-size:13px;padding:8px 0}';
-		root.insertBefore(style, root.firstChild);
-		return root;
+		return m.render().then(function (root) {
+			root.classList.add('xz-map');
+			var style = document.createElement('style');
+			style.textContent = ''
+				+ '.xz-map{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}'
+				+ '.xz-map>h2,.xz-map>.cbi-map-description,.xz-map>.cbi-page-actions{grid-column:1/-1}'
+				+ '.xz-map>.cbi-section{margin:0}'
+				+ '@media(max-width:900px){.xz-map{grid-template-columns:1fr}}'
+				+ '.xz-sec{margin:10px 0 4px;font-weight:500}'
+				+ '.xz-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}'
+				+ '.xz-tb{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}'
+				+ '.xz-tb th,.xz-tb td{padding:6px 8px;border-bottom:0.5px solid var(--color-border-tertiary);text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
+				+ '.xz-tb th{color:var(--color-text-secondary);font-weight:500}'
+				+ '.xz-empty{color:var(--color-text-tertiary);font-size:13px;padding:8px 0}';
+			root.insertBefore(style, root.firstChild);
+			return root;
+		});
 	}
 });
