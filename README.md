@@ -6,8 +6,8 @@
 
 | 分支 | 内容 | clone |
 |---|---|---|
-| `openwrt-app` | OpenWrt 侧：后端 API 包 + LuCI 控制界面 | `git clone -b openwrt-app <url>` |
-| `xiaozhi-firmware` | 小智 ESP32 固件侧：MCP AddTool 工具代码 | `git clone -b xiaozhi-firmware <url>` |
+| `openwrt-app` | OpenWrt 侧：后端 API 包 + LuCI 控制界面 | `git clone -b openwrt-app <仓库地址>.git` |
+| `xiaozhi-firmware` | 小智 ESP32 固件侧：MCP AddTool 工具代码 | `git clone -b xiaozhi-firmware <仓库地址>.git` |
 
 两条分支互不依赖历史（orphan），可独立演进。
 
