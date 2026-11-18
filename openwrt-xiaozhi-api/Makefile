@@ -6,6 +6,13 @@ PKG_RELEASE:=1
 
 include $(INCLUDE_DIR)/package.mk
 
+# 纯脚本包，无源码需要编译
+define Build/Prepare
+endef
+
+define Build/Compile
+endef
+
 define Package/xiaozhi-api
   SECTION:=utils
   CATEGORY:=Utilities

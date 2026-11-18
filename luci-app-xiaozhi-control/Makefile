@@ -6,6 +6,13 @@ PKG_RELEASE:=1
 
 include $(INCLUDE_DIR)/package.mk
 
+# 纯文件包，无源码需要编译
+define Build/Prepare
+endef
+
+define Build/Compile
+endef
+
 define Package/luci-app-xiaozhi-control
   SECTION:=luci
   CATEGORY:=LuCI
