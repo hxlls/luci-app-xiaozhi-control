@@ -1,0 +1,9 @@
+#!/bin/sh /etc/rc.common
+# 开机自动下载 OUI 库到 /tmp（延迟等网络就绪）
+
+START=95
+
+start() {
+    # 后台执行，不阻塞开机；脚本内部会等网络重试
+    /usr/bin/oui-update.sh &
+}
