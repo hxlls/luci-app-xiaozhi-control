@@ -18,44 +18,41 @@ return view.extend({
 		var arpText = data[1] || '';
 		var ouiText = data[2] || '';
 
-		// OUI 前缀 -> 厂商名
 		var oui = {};
 		ouiText.split('\n').forEach(function (line) {
 			var i = line.indexOf(',');
 			if (i > 0) oui[line.substring(0, i)] = line.substring(i + 1);
 		});
 
-		m = new form.Map('xiaozhi-api', _('小智 API'),
+		m = new form.Map('xiaozhi-api', _('小智控制'),
 			_('配置小智通过 MCP 调用本路由器；查询类只读，控制类需单独开启。'));
 
-		// 通用
 		s = m.section(form.NamedSection, 'main', 'xiaozhi-api', _('通用'));
 		o = s.option(form.Value, 'token', _('Token'),
 			_('接口鉴权 token，改后固件侧 URL 也要同步带 ?token='));
 		o = s.option(form.Flag, 'allow_control', _('控制类总开关'),
 			_('写操作总闸，默认关闭'));
 
-		// 各功能开关
+		// 各功能开关：合并到同一卡片，每个一行（直接读写对应 permission 段）
 		var perms = [
-			['clients', _('在线设备查询')],
-			['wan', _('WAN 状态查询')],
-			['status', _('系统状态查询')],
-			['portforward', _('端口映射（写操作）')],
-			['portforward_list', _('查看端口映射')]
+			['clients', _('在线设备查询'), _('只读，默认开')],
+			['wan', _('WAN 状态查询'), _('只读，默认开')],
+			['status', _('系统状态查询'), _('只读，默认开')],
+			['portforward', _('端口映射（写操作）'), _('需总开关同时打开，带二次确认')],
+			['portforward_list', _('查看端口映射'), _('需总开关同时打开')]
 		];
-		// 每个功能单独一个命名段，直接渲染成带开关的卡片
 		perms.forEach(function (p) {
-			var sec = uci.get('xiaozhi-api', p[0]);
-			if (!sec) return;
-			var ss = m.section(form.NamedSection, p[0], 'permission', p[1],
-				_('控制类还须上面的总开关同时打开才生效'));
-			o = ss.option(form.Flag, 'allow', _('允许'));
+			var opt = s.option(form.Flag, 'perm_' + p[0], p[1], p[2]);
+			opt.cfgvalue = function () {
+				return uci.get('xiaozhi-api', p[0], 'allow');
+			};
+			opt.write = function (section_id, value) {
+				return uci.set('xiaozhi-api', p[0], 'allow', value);
+			};
 		});
 
-		// 在线设备（只读展示）
-		s = m.section(form.TypedSection, '_devices', _('在线设备'), null);
-		s.anonymous = true;
-		o = s.option(form.DummyValue, '_dev');
+		// 在线设备表格（同一卡片内只读展示）
+		o = s.option(form.DummyValue, '_device_list', _('在线设备'));
 		o.rawhtml = true;
 		o.cfgvalue = function () {
 			var rows = ['<table class="table"><tr><th>IP</th><th>MAC</th><th>厂商</th></tr>'];
