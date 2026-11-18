@@ -43,14 +43,12 @@ return view.extend({
 			['portforward', _('端口映射（写操作）')],
 			['portforward_list', _('查看端口映射')]
 		];
-		s = m.section(form.TypedSection, 'permission', _('功能开关'),
-			_('每个功能独立开关；控制类还须上面的总开关同时打开才生效。'));
-		s.anonymous = false;
-		s.addremove = false;
+		// 每个功能单独一个命名段，直接渲染成带开关的卡片
 		perms.forEach(function (p) {
 			var sec = uci.get('xiaozhi-api', p[0]);
 			if (!sec) return;
-			var ss = m.section(form.NamedSection, p[0], 'permission', p[1]);
+			var ss = m.section(form.NamedSection, p[0], 'permission', p[1],
+				_('控制类还须上面的总开关同时打开才生效'));
 			o = ss.option(form.Flag, 'allow', _('允许'));
 		});
 
