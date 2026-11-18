@@ -9,7 +9,10 @@ var FEATURES = [
 	['wan',              'WAN 状态', '查询'],
 	['status',           '系统状态', '查询'],
 	['portforward',      '端口映射', '写操作'],
-	['portforward_list', '映射列表', '查询']
+	['portforward_list', '映射列表', '查询'],
+	['route_list',       '静态路由查询', '查询'],
+	['route_add',        '静态路由添加', '写操作'],
+	['route_del',        '静态路由删除', '写操作']
 ];
 
 return view.extend({
