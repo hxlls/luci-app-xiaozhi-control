@@ -16,7 +16,8 @@ if [ -n "$expect_token" ] && [ "$expect_token" != "change-me" ]; then
 fi
 
 json_escape() {
-    printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
+    # 先剔除控制字符(CR/LF/TAB等)，避免产出非法 JSON
+    printf '%s' "$1" | tr -d '\r\n\t' | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
 }
 
 # 从 query string 取参数
@@ -73,7 +74,7 @@ lookup_oui() {
     local mac="$1" prefix org
     prefix=$(printf '%s' "$mac" | tr -d ':-' | cut -c1-6 | tr 'A-Z' 'a-z')
     [ -f /tmp/oui.csv ] || return 1
-    org=$(grep -m1 "^$prefix," /tmp/oui.csv 2>/dev/null | cut -d, -f2-)
+    org=$(grep -m1 "^$prefix," /tmp/oui.csv 2>/dev/null | cut -d, -f2- | tr -d '\r')
     [ -n "$org" ] && printf '%s' "$org"
 }
 
