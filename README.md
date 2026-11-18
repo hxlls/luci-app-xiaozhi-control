@@ -1,48 +1,29 @@
 # luci-app-xiaozhi-control
 
-让小智 ESP32 通过固件自带的 MCP 能力调用 OpenWrt 路由器：查询状态、端口映射等，并提供 LuCI 管理界面。
+让小智 ESP32 通过固件自带的 MCP 能力调用 OpenWrt 路由器：查询状态、端口映射等。
 
-## 组成
+本项目按产品拆成两条**独立分支**，各自可单独 clone 与维护：
 
-| 目录 | 说明 |
-|---|---|
-| `openwrt-xiaozhi-api/` | OpenWrt 后端：标准 ipk 包，提供 HTTP JSON 接口（查设备/WAN/系统、端口映射、OUI 厂商识别） |
-| `luci-app-xiaozhi-control/` | LuCI 应用：标准 luci-app，挂在「服务 → 小智控制」菜单，配置 token 和各功能开关 |
+| 分支 | 内容 | clone |
+|---|---|---|
+| `openwrt-app` | OpenWrt 侧：后端 API 包 + LuCI 控制界面 | `git clone -b openwrt-app <url>` |
+| `xiaozhi-firmware` | 小智 ESP32 固件侧：MCP AddTool 工具代码 | `git clone -b xiaozhi-firmware <url>` |
 
-## 架构
+两条分支互不依赖历史（orphan），可独立演进。
+
+## 完整链路
 
 ```
-你说话 → 小智 ESP32 → 云端大模型 → 决定调工具
-       → 固件 AddTool 发 HTTP 请求 → OpenWrt routerapi 接口
+你说话 → 小智 ESP32（xiaozhi-firmware 分支）
+       → 云端大模型 → 决定调工具
+       → 固件 AddTool 发 HTTP 请求 → OpenWrt routerapi（openwrt-app 分支）
        → 读 ARP/DHCP/firewall → 返回 JSON → 大模型播报
 ```
 
-- 设备的连接地址取 ESP32 网关 IP，不用手填（小智直连那台 OpenWrt 时成立）
-- 接口在 `/cgi-bin/routerapi`，页面在 LuCI「服务 → 小智控制」
+## 地址
 
-## 功能
+- 仓库：http://192.168.1.16:3000/ling/luci-app-xiaozhi-control
+- clone OpenWrt 侧：`git clone -b openwrt-app http://192.168.1.16:3000/ling/luci-app-xiaozhi-control.git`
+- clone 固件侧：`git clone -b xiaozhi-firmware http://192.168.1.16:3000/ling/luci-app-xiaozhi-control.git`
 
-查询类（默认开）：
-- `clients` — 在线设备（ARP + DHCP hostname + OUI 厂商 + 手动映射）
-- `wan` — WAN IP / 网关
-- `status` — 运行时间 / 型号
-
-控制类（默认关，需逐项开启 + 二次确认）：
-- `portforward` — 端口映射，两阶段确认码防误操作
-- `portforward_list` — 查看已建映射
-
-安全分层：token → 控制总开关 → 每功能独立开关 → 参数校验 → 二次确认码。
-
-## 固件侧
-
-固件侧代码在独立分支 `xiaozhi-firmware`（见 `git clone -b xiaozhi-firmware ...`）。是 ESP32 固件的 AddTool 代码，照 `xiaozhi-esp32` 源码里 `self.screen.preview_image` 的模板写，加进固件的 `main/mcp_server.cc` 编译。
-
-## 编译
-
-见各目录的说明文档：
-
-- `openwrt-xiaozhi-api/编译说明.md`
-- `openwrt-xiaozhi-api/方案.md`
-- `luci-app-xiaozhi-control/安装说明.md`
-
-基于 ImmortalWrt / OpenWrt 25.12（mediatek filogic 等），两个包都放源码树 `package/utils/` 下即可编译。
+各分支的 README 有各自的编译和使用说明。
