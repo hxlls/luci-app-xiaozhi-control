@@ -10,7 +10,7 @@ AddTool(
         Property("ip", kPropertyTypeString),
         Property("int_port", kPropertyTypeInteger, 1, 65535)
     }),
-    [](const PropertyList& properties) -> ReturnValue {
+    [](const PropertyList& properties) -> ToolResult {
         std::string gw = GetGatewayIp();
         if (gw.empty()) return std::unexpected("No gateway IP");
         int ext = properties["ext_port"].value<int>();
@@ -45,7 +45,7 @@ AddTool(
         Property("int_port", kPropertyTypeInteger, 1, 65535),
         Property("confirm", kPropertyTypeString)
     }),
-    [](const PropertyList& properties) -> ReturnValue {
+    [](const PropertyList& properties) -> ToolResult {
         std::string gw = GetGatewayIp();
         if (gw.empty()) return std::unexpected("No gateway IP");
         int ext = properties["ext_port"].value<int>();
@@ -74,7 +74,7 @@ AddTool(
     "router.port_forward_list",
     "List all port mappings created by this assistant.",
     PropertyList(),
-    [](const PropertyList& properties) -> ReturnValue {
+    [](const PropertyList& properties) -> ToolResult {
         std::string gw = GetGatewayIp();
         if (gw.empty()) return std::unexpected("No gateway IP");
         std::string url = "http://" + gw + "/cgi-bin/routerapi?action=portforward_list";
