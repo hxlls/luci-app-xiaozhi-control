@@ -6,7 +6,6 @@
 
 | 目录 | 说明 |
 |---|---|
-| `xiaozhi-firmware/` | 小智 ESP32 固件侧：AddTool 工具代码（独立，加到 xiaozhi-esp32 固件里） |
 | `openwrt-xiaozhi-api/` | OpenWrt 后端：标准 ipk 包，提供 HTTP JSON 接口（查设备/WAN/系统、端口映射、OUI 厂商识别） |
 | `luci-app-xiaozhi-control/` | LuCI 应用：标准 luci-app，挂在「服务 → 小智控制」菜单，配置 token 和各功能开关 |
 
@@ -36,12 +35,12 @@
 
 ## 固件侧
 
-`xiaozhi-firmware/` 是 ESP32 固件的 AddTool 代码，照 `xiaozhi-esp32` 源码里 `self.screen.preview_image` 的模板写，加进固件的 `main/mcp_server.cc` 编译。详见该目录的 README。
+固件侧代码在独立分支 `xiaozhi-firmware`（见 `git clone -b xiaozhi-firmware ...`）。是 ESP32 固件的 AddTool 代码，照 `xiaozhi-esp32` 源码里 `self.screen.preview_image` 的模板写，加进固件的 `main/mcp_server.cc` 编译。
 
 ## 编译
 
 见各目录的说明文档：
-- `xiaozhi-firmware/README.md`
+
 - `openwrt-xiaozhi-api/编译说明.md`
 - `openwrt-xiaozhi-api/方案.md`
 - `luci-app-xiaozhi-control/安装说明.md`
