@@ -59,5 +59,5 @@ make package/utils/luci-app-xiaozhi-control/compile V=s
 ESP32 固件侧的 AddTool 代码在独立分支 `xiaozhi-firmware`：
 
 ```sh
-git clone -b xiaozhi-firmware http://192.168.1.16:3000/ling/luci-app-xiaozhi-control.git
+git clone -b xiaozhi-firmware <仓库地址>.git
 ```
