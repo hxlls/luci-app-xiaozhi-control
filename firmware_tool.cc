@@ -9,14 +9,15 @@ static std::string GetGatewayIp() {
     if (netif == nullptr) return "";
     esp_netif_ip_info_t ip_info;
     if (esp_netif_get_ip_info(netif, &ip_info) != ESP_OK) return "";
-    return esp_ip4addr_ntoa(&ip_info.gw);   // 网关 = 路由器 IP
+    char buf[16];
+    return std::string(esp_ip4addr_ntoa(&ip_info.gw, buf, sizeof(buf)));   // 网关 = 路由器 IP
 }
 
 AddTool(
     "router.get_clients",
     "Get the list of devices currently connected to the router, including their IP and hostname",
     PropertyList(),
-    [](const PropertyList& properties) -> ReturnValue {
+    [](const PropertyList& properties) -> ToolResult {
         // 动态拿网关 IP，拼出接口地址，例如 http://<路由器IP>/cgi-bin/routerapi?action=clients
         std::string gw = GetGatewayIp();
         if (gw.empty()) {
