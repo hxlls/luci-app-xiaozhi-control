@@ -1,0 +1,14 @@
+{
+	"admin/services/xiaozhi-control": {
+		"title": "小智控制",
+		"order": 50,
+		"action": {
+			"type": "view",
+			"path": "xiaozhi-control/xiaozhi-control"
+		},
+		"depends": {
+			"acl": [ "luci-app-xiaozhi-control" ],
+			"uci": { "xiaozhi-api": true }
+		}
+	}
+}
