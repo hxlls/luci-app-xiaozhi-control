@@ -17,7 +17,7 @@ AddTool(
     "Get the list of devices currently connected to the router, including their IP and hostname",
     PropertyList(),
     [](const PropertyList& properties) -> ReturnValue {
-        // 动态拿网关 IP，拼出接口地址，例如 http://192.168.1.1/cgi-bin/routerapi?action=clients
+        // 动态拿网关 IP，拼出接口地址，例如 http://<路由器IP>/cgi-bin/routerapi?action=clients
         std::string gw = GetGatewayIp();
         if (gw.empty()) {
             return std::unexpected("No gateway IP (is WiFi connected?)");
