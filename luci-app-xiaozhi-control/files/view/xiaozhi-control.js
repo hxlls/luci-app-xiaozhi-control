@@ -2,7 +2,6 @@
 'require view';
 'require form';
 'require uci';
-'require fs';
 
 /* 扩展点 1：新增功能开关，只需追加一项 [标识, 名称, 提示] */
 var FEATURES = [
@@ -17,39 +16,12 @@ return view.extend({
 	load: function () {
 		return Promise.all([
 			uci.load('xiaozhi-api'),
-			uci.load('firewall'),
-			fs.read('/proc/net/arp').catch(function () { return ''; }),
-			fs.read('/tmp/oui.csv').catch(function () { return ''; })
+			uci.load('firewall')
 		]);
 	},
 
 	render: function (data) {
 		var m, s, o;
-		var arpText = data[2] || '', ouiText = data[3] || '';
-
-		var oui = {};
-		ouiText.split('\n').forEach(function (line) {
-			var i = line.indexOf(',');
-			if (i > 0) oui[line.substring(0, i)] = line.substring(i + 1);
-		});
-
-		// MAC -> 友好名（config name_map）
-		var names = {};
-		uci.sections('xiaozhi-api', 'name_map').forEach(function (sec) {
-			if (sec.mac && sec.name) names[sec.mac.toLowerCase()] = sec.name;
-		});
-
-		var devices = [];
-		arpText.split('\n').forEach(function (line) {
-			var f = line.trim().split(/\s+/);
-			if (f.length < 4 || f[2] !== '0x2') return;
-			var mac = f[3].toLowerCase();
-			if (mac === '00:00:00:00:00:00') return;
-			var p = mac.substring(0, 2) + mac.substring(3, 5) + mac.substring(6, 8);
-			var vendor = oui[p] || '-';
-			var name = names[mac] || f[4] || vendor;
-			devices.push([f[0], name, vendor]);
-		});
 
 		var forwards = [];
 		uci.sections('firewall', 'redirect').forEach(function (sec) {
@@ -83,19 +55,40 @@ return view.extend({
 			opt.write = function (sid, val) { return uci.set('xiaozhi-api', f[0], 'allow', val); };
 		});
 
-		// 右栏：状态（实时读取，无需保存）
+		// 右栏：状态用占位 section，渲染后用 DOM 填充（实时读取，无需保存）
 		s = m.section(form.TypedSection, '_status', _('状态'));
 		s.anonymous = true;
-		o = s.option(form.DummyValue, '_tables');
-		o.rawhtml = true;
-		o.cfgvalue = function () {
-			var h = '<div class="xz-sec">在线设备</div>' + table(['IP', '名称', '厂商'], devices);
-			h += '<div class="xz-sec">端口映射</div>' + table(['外部', '内网 IP', '内部'], forwards);
-			return h;
-		};
+
+		// 状态区 HTML（在线设备稍后异步填充）
+		var statusHtml = '<div class="xz-sec">在线设备</div><div id="xz-devices">'
+			+ '<p class="xz-empty">加载中…</p></div>'
+			+ '<div class="xz-sec">端口映射</div>' + table(['外部', '内网 IP', '内部'], forwards);
 
 		return m.render().then(function (root) {
 			root.classList.add('xz-map');
+			// 找到"状态"section，替换其空内容为状态表格
+			var sections = root.querySelectorAll('.cbi-section');
+			if (sections.length > 1) {
+				var node = sections[1].querySelector('.cbi-section-node') || sections[1];
+				node.innerHTML = statusHtml;
+			}
+			// 异步读取在线设备（延迟到页面渲染完成后，routerapi 已做好名称解析）
+			setTimeout(function () {
+				fetch('/cgi-bin/routerapi?action=clients')
+					.then(function (r) { return r.json(); })
+					.then(function (j) {
+						var box = root.querySelector('#xz-devices');
+						if (!box) return;
+						var rows = (j.clients || []).map(function (c) {
+							return [c.ip, c.name || c.mac || '-'];
+						});
+						box.innerHTML = rows.length ? table(['IP', '设备名'], rows) : '<p class="xz-empty">暂无在线设备</p>';
+					})
+					.catch(function (e) {
+						var box = root.querySelector('#xz-devices');
+						if (box) box.innerHTML = '<p class="xz-empty">读取失败: ' + (e && e.message || '') + '</p>';
+					});
+			}, 300);
 			var style = document.createElement('style');
 			style.textContent = ''
 				+ '.xz-map{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}'
