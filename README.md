@@ -6,28 +6,29 @@
 
 | 文件 | 说明 |
 |---|---|
-| `firmware_tool.cc` | 基础查询工具 + `GetGatewayIp()`：在线设备、WAN 状态、系统状态 |
+| `firmware_tool.cc` | 基础查询工具 + `GetGatewayIp()`：在线设备 |
+| `firmware_health.cc` | 网络体检：`router.network_health` |
 | `firmware_control.cc` | 控制工具：端口映射（带二次确认）、查看映射 |
 | `firmware_route.cc` | 控制工具：静态路由增删查（添加/删除带二次确认） |
 
-三个文件都要加进 `main/`，`GetGatewayIp()` 定义在 `firmware_tool.cc`，其他文件依赖它。
+四个文件都要加进 `main/`，`GetGatewayIp()` 定义在 `firmware_tool.cc`，其他文件依赖它。
 
 ## 用法
 
 ### 1. 放到固件源码
 
-把这两个文件放到 `xiaozhi-esp32` 固件的 `main/` 目录下。
+把这四个文件放到 `xiaozhi-esp32` 固件的 `main/` 目录下。
 
 ### 2. 修改 main/mcp_server.cc
 
-在 `InitializeTools()` 函数里，把两个文件里的 `AddTool(...)` 代码块粘进去。
+在 `InitializeTools()` 函数里，把这些文件里的 `AddTool(...)` 代码块粘进去。
 
 参考固件自带的 `self.screen.preview_image` 工具——这些代码就是照它的模板写的（HTTP GET 访问接口）。
 
 ### 3. 依赖
 
 - `#include <esp_netif.h>`（在 `firmware_tool.cc` 里已包含，用于取网关 IP）
-- `GetGatewayIp()` 定义在 `firmware_tool.cc`，`firmware_control.cc` 依赖它——**两个文件都要加**
+- `GetGatewayIp()` 定义在 `firmware_tool.cc`，`firmware_health.cc`、`firmware_control.cc`、`firmware_route.cc` 都依赖它——**四个文件都要加**
 
 ### 4. 编译烧录
 
@@ -48,14 +49,13 @@ idf.py build flash monitor
 ## 对应的 OpenWrt 侧
 
 接口定义在同仓库 `openwrt-xiaozhi-api/`：
-- `/cgi-bin/routerapi?action=clients|wan|status|portforward|portforward_list`
+- `/cgi-bin/routerapi?action=clients|wan|status|health|portforward|portforward_list`
 
 工具名与接口 action 对应关系：
 | MCP 工具 | 接口 action |
 |---|---|
 | `router.get_clients` | `clients` |
-| `router.get_wan_status` | `wan` |
-| `router.get_system_info` | `status` |
+| `router.network_health` | `health` |
 | `router.port_forward` | `portforward`（第一步，取确认码） |
 | `router.port_forward_confirm` | `portforward`（带 confirm 码执行） |
 | `router.port_forward_list` | `portforward_list` |
