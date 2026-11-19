@@ -77,19 +77,27 @@ return view.extend({
 				});
 			}
 
+			function rate(v) {
+				if (v < 0) return '采样中';
+				return v >= 1000 ? (v / 1000).toFixed(1) + ' Mbps' : v + ' kbps';
+			}
+
 			function healthHtml(j) {
 				if (j.error) return '<p class="xz-empty">读取失败：' + esc(j.error) + '</p>';
 				var c = j.checks || {};
 				var wan = c.wan || {}, net = c.internet || {}, dns = c.dns || {};
 				var gw = c.gateway_ping || {}, sys = c.system || {}, cl = c.clients || {}, ct = c.conntrack || {};
+				var tf = c.traffic || {}, cnt = c.counts || {};
 				var st = { ok: '正常', warn: '注意', error: '异常', unknown: '未知' };
 				var rows = [
 					['WAN', st[wan.status] || '-', wan.up ? (wan.ip || '已连接') : '未连接'],
+					['WAN 流量', st[tf.status] || '-', '↓ ' + rate(tf.rx_rate_kbps) + '  ↑ ' + rate(tf.tx_rate_kbps)],
 					['外网', st[net.status] || '-', net.latency_ms >= 0 ? (net.latency_ms + ' ms，丢包 ' + net.loss + '%') : '丢包 ' + net.loss + '%'],
 					['DNS', st[dns.status] || '-', dns.status === 'ok' ? '解析正常' : '解析失败'],
 					['网关', st[gw.status] || '-', gw.latency_ms >= 0 ? (gw.latency_ms + ' ms') : (wan.gateway || '-')],
 					['系统', st[sys.status] || '-', '负载 ' + (sys.load || '-') + '，内存已用 ' + (sys.mem_used_pct || 0) + '%'],
-					['在线设备', st[cl.status] || '-', (cl.online || 0) + ' 台（' + (cl.unknown || 0) + ' 台未命名）'],
+					['在线设备', st[cl.status] || '-', (cl.online || 0) + ' 台（' + (cl.unknown || 0) + ' 台未命名，DHCP ' + (cnt.dhcp_leases || 0) + '）'],
+					['配置', '-', '端口映射 ' + (cnt.port_forwards || 0) + ' 条，静态路由 ' + (cnt.static_routes || 0) + ' 条'],
 					['连接数', st[ct.status] || '-', ct.max > 0 ? (ct.count + ' / ' + ct.max + '（' + ct.pct + '%）') : '未知']
 				];
 				var issues = (j.issues || []).length

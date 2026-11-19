@@ -29,7 +29,7 @@ OpenWrt 侧的两个标准包：后端 HTTP API + LuCI 控制界面。配套的�
 - `clients` — 在线设备（ARP + DHCP hostname + OUI 厂商 + name_map）
 - `wan` — WAN IP / 网关
 - `status` — 运行时间 / 型号
-- `health` — 网络体检（WAN/外网/DNS/网关/负载/内存/设备/连接数，返回评分与问题列表）
+- `health` — 网络体检（WAN/外网/DNS/网关/负载/内存/设备/连接数/实时流量/端口映射与路由计数，返回评分与问题列表）
 - `portforward_list` — 端口转发列表
 - `route_list` — 静态路由列表
 

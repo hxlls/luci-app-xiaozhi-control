@@ -198,6 +198,38 @@ case "$action" in
         ct_count=$(cat /proc/sys/net/netfilter/nf_conntrack_count 2>/dev/null); [ -n "$ct_count" ] || ct_count=0
         ct_max=$(cat /proc/sys/net/netfilter/nf_conntrack_max 2>/dev/null); [ -n "$ct_max" ] || ct_max=0
 
+        # WAN 流量：/proc/net/dev 累计字节；打开页面时现场采样 1 秒，算当前速率
+        wan_iface=$(printf '%s' "$wan_json" | jsonfilter -e '@.l3_device' 2>/dev/null)
+        [ -n "$wan_iface" ] || wan_iface=pppoe-wan
+        traffic_line=$(awk -v i="$wan_iface" '$1==i":" {gsub(":","",$1); print $2" "$10}' /proc/net/dev 2>/dev/null)
+        rx_bytes1=${traffic_line%% *}; tx_bytes1=${traffic_line##* }
+        [ -n "$rx_bytes1" ] || rx_bytes1=0
+        [ -n "$tx_bytes1" ] || tx_bytes1=0
+        sleep 1
+        traffic_line=$(awk -v i="$wan_iface" '$1==i":" {gsub(":","",$1); print $2" "$10}' /proc/net/dev 2>/dev/null)
+        rx_bytes=${traffic_line%% *}; tx_bytes=${traffic_line##* }
+        [ -n "$rx_bytes" ] || rx_bytes=0
+        [ -n "$tx_bytes" ] || tx_bytes=0
+        traffic_status="unknown"
+        [ "$rx_bytes" -gt 0 ] 2>/dev/null && traffic_status="ok"
+        traffic_dt=1
+        drx=$((rx_bytes - rx_bytes1)); dtx=$((tx_bytes - tx_bytes1))
+        [ "$drx" -lt 0 ] && drx=0
+        [ "$dtx" -lt 0 ] && dtx=0
+        rx_rate=$(awk -v b="$drx" -v t="$traffic_dt" 'BEGIN{printf "%.1f", b * 8 / 1000 / t}')
+        tx_rate=$(awk -v b="$dtx" -v t="$traffic_dt" 'BEGIN{printf "%.1f", b * 8 / 1000 / t}')
+
+        # 各类计数：DHCP 租约、端口映射、静态路由
+        dhcp_count=$(wc -l < /tmp/dhcp.leases 2>/dev/null | tr -d ' '); [ -n "$dhcp_count" ] || dhcp_count=0
+        pf_count=$(uci -q show firewall 2>/dev/null | grep '\.target=' | while IFS='=' read -r key val; do
+            [ "$val" = "'DNAT'" ] || continue
+            sect=${key%.*}
+            [ -n "$(uci -q get "$sect.src_dport" 2>/dev/null)" ] && echo x
+        done | wc -l | tr -d ' ')
+        [ -n "$pf_count" ] || pf_count=0
+        route_count=$(uci -q show network 2>/dev/null | grep -c '\.target=')
+        [ -n "$route_count" ] || route_count=0
+
         # 在线设备：ARP 可达条目；未命名 = 既不在 name_map，也没有 DHCP hostname
         arp_entries=$(awk 'NR>1 && $3=="0x2" && $4!="00:00:00:00:00:00" {print $1" "$4}' /proc/net/arp 2>/dev/null)
         online=$(printf '%s\n' "$arp_entries" | grep -c .)
@@ -347,12 +379,14 @@ case "$action" in
         [ "$unknown" -gt 0 ] && summary="$summary，${unknown} 台未命名"
         wan_up_json=false; [ "$wan_up" = "1" ] && wan_up_json=true
 
-        printf '{"score":%d,"grade":"%s","grade_text":"%s","summary":"%s","checks":{"wan":{"status":"%s","up":%s,"ip":"%s","gateway":"%s"},"internet":{"status":"%s","loss":%d,"latency_ms":%s},"dns":{"status":"%s"},"gateway_ping":{"status":"%s","latency_ms":%s},"system":{"status":"%s","uptime":%d,"load":"%s","cores":%d,"mem_used_pct":%d},"clients":{"status":"%s","online":%d,"unknown":%d},"conntrack":{"status":"%s","count":%d,"max":%d,"pct":%d}},"issues":[%s]}\n' \
+        printf '{"score":%d,"grade":"%s","grade_text":"%s","summary":"%s","checks":{"wan":{"status":"%s","up":%s,"ip":"%s","gateway":"%s"},"internet":{"status":"%s","loss":%d,"latency_ms":%s},"dns":{"status":"%s"},"gateway_ping":{"status":"%s","latency_ms":%s},"system":{"status":"%s","uptime":%d,"load":"%s","cores":%d,"mem_used_pct":%d},"clients":{"status":"%s","online":%d,"unknown":%d},"conntrack":{"status":"%s","count":%d,"max":%d,"pct":%d},"traffic":{"status":"%s","iface":"%s","rx_bytes":%s,"tx_bytes":%s,"rx_rate_kbps":%s,"tx_rate_kbps":%s,"sample_sec":%d},"counts":{"dhcp_leases":%d,"port_forwards":%d,"static_routes":%d}},"issues":[%s]}\n' \
             "$score" "$grade" "$grade_text" "$(json_escape "$summary")" \
             "$wan_status" "$wan_up_json" "$(json_escape "$wan_ip")" "$(json_escape "$wan_gw")" \
             "$net_status" "$net_loss" "$net_avg" "$dns_status" "$gw_status" "$gw_avg" \
             "$sys_status" "$uptime_s" "$(json_escape "$load")" "$cores" "$mem_used_pct" \
-            "$clients_status" "$online" "$unknown" "$ct_status" "$ct_count" "$ct_max" "$ct_pct" "$issues_json"
+            "$clients_status" "$online" "$unknown" "$ct_status" "$ct_count" "$ct_max" "$ct_pct" \
+            "$traffic_status" "$(json_escape "$wan_iface")" "$rx_bytes" "$tx_bytes" "$rx_rate" "$tx_rate" "$traffic_dt" \
+            "$dhcp_count" "$pf_count" "$route_count" "$issues_json"
         ;;
     portforward)
         # 端口映射（控制类）：需总开关 + portforward 开关同时打开
