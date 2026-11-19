@@ -5,6 +5,7 @@
 
 /* 扩展点 1：新增功能开关，只需追加一项 [标识, 名称, 提示] */
 var FEATURES = [
+	['health',           '网络体检', '查询'],
 	['clients',          '在线设备', '查询'],
 	['wan',              'WAN 状态', '查询'],
 	['status',           '系统状态', '查询'],
@@ -70,7 +71,36 @@ return view.extend({
 			return h + '</tbody></table></div>';
 		}
 
-		m = new form.Map('xiaozhi-api', _('小智控制'));
+		function esc(text) {
+				return String(text == null ? '' : text).replace(/[&<>"']/g, function (ch) {
+					return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
+				});
+			}
+
+			function healthHtml(j) {
+				if (j.error) return '<p class="xz-empty">读取失败：' + esc(j.error) + '</p>';
+				var c = j.checks || {};
+				var wan = c.wan || {}, net = c.internet || {}, dns = c.dns || {};
+				var gw = c.gateway_ping || {}, sys = c.system || {}, cl = c.clients || {}, ct = c.conntrack || {};
+				var st = { ok: '正常', warn: '注意', error: '异常', unknown: '未知' };
+				var rows = [
+					['WAN', st[wan.status] || '-', wan.up ? (wan.ip || '已连接') : '未连接'],
+					['外网', st[net.status] || '-', net.latency_ms >= 0 ? (net.latency_ms + ' ms，丢包 ' + net.loss + '%') : '丢包 ' + net.loss + '%'],
+					['DNS', st[dns.status] || '-', dns.status === 'ok' ? '解析正常' : '解析失败'],
+					['网关', st[gw.status] || '-', gw.latency_ms >= 0 ? (gw.latency_ms + ' ms') : (wan.gateway || '-')],
+					['系统', st[sys.status] || '-', '负载 ' + (sys.load || '-') + '，内存已用 ' + (sys.mem_used_pct || 0) + '%'],
+					['在线设备', st[cl.status] || '-', (cl.online || 0) + ' 台（' + (cl.unknown || 0) + ' 台未命名）'],
+					['连接数', st[ct.status] || '-', ct.max > 0 ? (ct.count + ' / ' + ct.max + '（' + ct.pct + '%）') : '未知']
+				];
+				var issues = (j.issues || []).length
+					? '<p class="xz-health-issue">注意：' + j.issues.map(esc).join('；') + '</p>' : '';
+				return '<div class="xz-health-head"><span class="xz-score">' + esc(j.score) + '</span> 分 · '
+					+ esc(j.grade_text || j.grade || '') + '</div>'
+					+ '<p class="xz-health-sum">' + esc(j.summary || '') + '</p>'
+					+ table(['项目', '状态', '详情'], rows) + issues;
+			}
+
+			m = new form.Map('xiaozhi-api', _('小智控制'));
 
 		// 左栏：配置
 		s = m.section(form.NamedSection, 'main', 'xiaozhi-api', _('配置'));
@@ -87,7 +117,9 @@ return view.extend({
 		s.anonymous = true;
 
 		// 状态区 HTML（在线设备稍后异步填充）
-		var statusHtml = '<div class="xz-sec">在线设备</div><div id="xz-devices">'
+		var statusHtml = '<div class="xz-sec">网络体检</div><div id="xz-health">'
+			+ '<p class="xz-empty">加载中…</p></div>'
+			+ '<div class="xz-sec">在线设备</div><div id="xz-devices">'
 			+ '<p class="xz-empty">加载中…</p></div>'
 			+ '<div class="xz-sec">端口映射</div>' + table(['规则名', '外部', '内网 IP', '内部'], forwards)
 			+ '<div class="xz-sec">静态路由</div>' + table(['目标网段', '网关', '接口'], routes);
@@ -116,6 +148,16 @@ return view.extend({
 						var box = root.querySelector('#xz-devices');
 						if (box) box.innerHTML = '<p class="xz-empty">读取失败: ' + (e && e.message || '') + '</p>';
 					});
+				fetch('/cgi-bin/routerapi?action=health')
+					.then(function (r) { return r.json(); })
+					.then(function (j) {
+						var box = root.querySelector('#xz-health');
+						if (box) box.innerHTML = healthHtml(j);
+					})
+					.catch(function (e) {
+						var box = root.querySelector('#xz-health');
+						if (box) box.innerHTML = '<p class="xz-empty">读取失败: ' + (e && e.message || '') + '</p>';
+					});
 			}, 300);
 			var style = document.createElement('style');
 			style.textContent = ''
@@ -128,7 +170,11 @@ return view.extend({
 				+ '.xz-tb{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}'
 				+ '.xz-tb th,.xz-tb td{padding:6px 8px;border-bottom:0.5px solid var(--color-border-tertiary);text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
 				+ '.xz-tb th{color:var(--color-text-secondary);font-weight:500}'
-				+ '.xz-empty{color:var(--color-text-tertiary);font-size:13px;padding:8px 0}';
+				+ '.xz-empty{color:var(--color-text-tertiary);font-size:13px;padding:8px 0}'
+				+ '.xz-health-head{font-size:14px;margin:4px 0}'
+				+ '.xz-score{font-size:26px;font-weight:600}'
+				+ '.xz-health-sum{margin:2px 0 8px;color:var(--color-text-secondary);font-size:13px}'
+				+ '.xz-health-issue{margin:6px 0 0;color:var(--color-warning,#b26a00);font-size:13px}';
 			root.insertBefore(style, root.firstChild);
 			return root;
 		});

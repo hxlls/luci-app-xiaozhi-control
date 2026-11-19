@@ -6,7 +6,7 @@ OpenWrt 侧的两个标准包：后端 HTTP API + LuCI 控制界面。配套的�
 
 | 目录 | 说明 |
 |---|---|
-| `openwrt-xiaozhi-api/` | 后端：标准 apk 包，提供 HTTP JSON 接口（查设备/WAN/系统、端口映射、静态路由增删查） |
+| `openwrt-xiaozhi-api/` | 后端：标准 apk 包，提供 HTTP JSON 接口（查设备/WAN/系统/网络体检、端口映射、静态路由增删查） |
 | `luci-app-xiaozhi-control/` | LuCI 应用：标准 luci-app，挂在「服务 → 小智控制」菜单，配置 token 和各功能开关 |
 
 ## 调用链
@@ -29,6 +29,7 @@ OpenWrt 侧的两个标准包：后端 HTTP API + LuCI 控制界面。配套的�
 - `clients` — 在线设备（ARP + DHCP hostname + OUI 厂商 + name_map）
 - `wan` — WAN IP / 网关
 - `status` — 运行时间 / 型号
+- `health` — 网络体检（WAN/外网/DNS/网关/负载/内存/设备/连接数，返回评分与问题列表）
 - `portforward_list` — 端口转发列表
 - `route_list` — 静态路由列表
 
@@ -69,7 +70,7 @@ ssh root@<路由器IP> 'apk add --allow-untrusted /tmp/*xiaozhi*.apk'
 
 ## 配套固件
 
-ESP32 固件侧的 AddTool 代码在独立分支 `xiaozhi-firmware`（三个 .cc 文件）：
+ESP32 固件侧的 AddTool 代码在独立分支 `xiaozhi-firmware`（四个 .cc 文件）：
 
 ```sh
 git clone -b xiaozhi-firmware <仓库地址>.git
